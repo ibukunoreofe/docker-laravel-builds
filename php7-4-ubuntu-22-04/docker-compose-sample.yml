@@ -1,0 +1,36 @@
+version: '3.3'
+services:
+    web:
+        build:
+            # Docker can access files on top, it can only be from current context and subdirectories
+            context: .
+            dockerfile: ./docker/7.4/Dockerfile
+            args:
+                APP_ENV: '${APP_ENV}'
+        image: registry.gitlab.com/scadware/api-highschool-scadware:latest
+        command: /var/www/html/docker/7.4/start.sh
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '${APP_PORT:-80}:80'
+        environment:
+            APP_ENV: '${APP_ENV}'
+        env_file:
+            - .env
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - redis
+    redis:
+        image: redis:6.0.9
+        networks:
+            - sail
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            retries: 3
+            timeout: 5s
+networks:
+    sail:
+        driver: bridge
