@@ -124,6 +124,9 @@ COPY start_laravel_app.sh /usr/local/bin/start_laravel_app
 # Make the script executable
 RUN chmod +x /usr/local/bin/start_laravel_app
 
+# Utilities
+RUN apt-get install -y \
+    jq
 
 EXPOSE 8000
 
