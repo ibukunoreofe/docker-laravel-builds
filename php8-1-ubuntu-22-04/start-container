@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# Set WWWUSER based on environment
+if [ "$APP_ENV" = "production" ]; then
+    WWWUSER=0
+else
+    WWWUSER=1000
+fi
+
+# Modify the user ID (uid) of the sail user to the value of WWWUSER.
+if [ ! -z "$WWWUSER" ]; then
+    usermod -u $WWWUSER sail
+fi
+
+# Check if the /.composer directory exists. If it doesn’t, create it.
+if [ ! -d /.composer ]; then
+    mkdir /.composer
+fi
+
+# Set the permissions on the .composer directory
+chmod -R ugo+rw /.composer
+
+# Start cron in the background
+cron
+
+# If arguments are provided ([ $# -gt 0 ]), it uses gosu to switch to the WWWUSER and execute the provided command.
+if [ $# -gt 0 ]; then
+    exec gosu $WWWUSER "$@"
+else
+    # If no arguments are provided, start supervisord as the main process
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+fi
