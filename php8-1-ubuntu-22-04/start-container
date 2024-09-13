@@ -7,8 +7,8 @@ else
     WWWUSER=1000
 fi
 
-# Modify the user ID (uid) of the sail user to the value of WWWUSER.
-if [ ! -z "$WWWUSER" ]; then
+# Modify the user ID (uid) of the sail user to the value of WWWUSER only if it's not zero
+if [ "$WWWUSER" -ne 0 ]; then
     usermod -u $WWWUSER sail
 fi
 
