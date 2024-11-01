@@ -1,32 +1,58 @@
 #!/usr/bin/env bash
 
-# Set WWWUSER based on environment
-if [ "$APP_ENV" = "production" ]; then
-    WWWUSER=0
-else
-    WWWUSER=1000
+# Enable verbose mode to log everything happening (including command expansions)
+set -x
+
+# Exit the script immediately if any command fails
+set -e
+
+# Log the current user and UID
+CURRENT_USER=$(whoami)
+CURRENT_UID=$(id -u)
+echo "INFO: Script is being run by user '$CURRENT_USER' with UID '$CURRENT_UID'."
+
+# Check if SUPERVISOR_PHP_USER is set correctly
+if [ "$SUPERVISOR_PHP_USER" != "root" ] && [ "$SUPERVISOR_PHP_USER" != "sail" ]; then
+    echo "ERROR: SUPERVISOR_PHP_USER must be set to either 'sail' or 'root'."
+    exit 1
 fi
 
-# Modify the user ID (uid) of the sail user to the value of WWWUSER only if it's not zero
-if [ "$WWWUSER" -ne 0 ]; then
-    usermod -u $WWWUSER sail
+echo "INFO: SUPERVISOR_PHP_USER is set to '$SUPERVISOR_PHP_USER'."
+echo "INFO: SUPERVISOR_PHP_USER_ID is set to '$SUPERVISOR_PHP_USER_ID'."
+
+
+# Modify the user ID (uid) of the sail user if SUPERVISOR_PHP_USER_ID is not root
+if [ "$SUPERVISOR_PHP_USER" != "root" ]; then
+    echo "INFO: Modifying 'sail' user UID to $SUPERVISOR_PHP_USER_ID."
+    usermod -u $SUPERVISOR_PHP_USER_ID sail
+else
+    echo "INFO: SUPERVISOR_PHP_USER is root. No user modification needed."
 fi
 
 # Check if the /.composer directory exists. If it doesn’t, create it.
 if [ ! -d /.composer ]; then
+    echo "INFO: /.composer directory does not exist. Creating it."
     mkdir /.composer
+else
+    echo "INFO: /.composer directory already exists."
 fi
 
-# Set the permissions on the .composer directory
+# Set permissions on the .composer directory to be readable and writable by all users
+echo "INFO: Setting permissions on /.composer to be readable and writable by all users."
 chmod -R ugo+rw /.composer
 
 # Start cron in the background
-cron
+echo "INFO: Starting cron in the background."
+cron &
 
-# If arguments are provided ([ $# -gt 0 ]), it uses gosu to switch to the WWWUSER and execute the provided command.
+# Check if any arguments are provided
 if [ $# -gt 0 ]; then
-    exec gosu $WWWUSER "$@"
+    echo "INFO: Arguments provided: $@"
+    echo "INFO: Executing command: $@"
+    exec "$@"
 else
-    # If no arguments are provided, start supervisord as the main process
+    # If no arguments are provided, start supervisord
+# Note: supervisord will handle each program user as specified in ENV_SUPERVISOR_PHP_USER, which is expected to have SUPERVISOR_PHP_USER_ID as UID
+    echo "INFO: No arguments provided. Starting supervisord."
     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 fi
