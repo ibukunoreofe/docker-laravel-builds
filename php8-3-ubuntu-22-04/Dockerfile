@@ -143,6 +143,10 @@ RUN sed -i 's/^pm.max_spare_servers = .*/pm.max_spare_servers = 10/' /etc/php/8.
 # Update PHP-FPM error log location
 RUN sed -i 's|^error_log = .*|error_log = /var/www/html/storage/logs/php8.3-fpm_error.log|' /etc/php/8.3/fpm/php-fpm.conf
 
+# Link SQLSRV extension for PHP-FPM
+RUN ln -s /etc/php/8.3/mods-available/sqlsrv.ini /etc/php/8.3/fpm/conf.d/20-sqlsrv.ini
+RUN ln -s /etc/php/8.3/mods-available/pdo_sqlsrv.ini /etc/php/8.3/fpm/conf.d/20-pdo_sqlsrv.ini
+
 # Create the start_laravel_app script
 COPY start_laravel_app.sh /usr/local/bin/start_laravel_app
 
