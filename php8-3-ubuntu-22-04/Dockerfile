@@ -97,17 +97,13 @@ COPY cacert.pem /etc/php/8.3/cacert.pem
 # Add cronjob, you can use below if you want log
 RUN (crontab -l 2>/dev/null; echo "* * * * * php /var/www/html/artisan schedule:run >> /dev/null 2>&1") | crontab -
 
-
-
 # Schedulers
 RUN apt-get install -y \
     cron htop gosu
 
-
 # Networking Tools
 RUN apt-get install -y \
     iproute2 iputils-ping netcat net-tools lsof
-
 
 # Editors
 RUN apt-get install -y \
@@ -117,6 +113,35 @@ RUN apt-get install -y \
 RUN apt-get install -y \
     jq
 
+# Install FPM
+RUN apt-get update && apt-get install -y php8.3-fpm
+
+# Install nginx
+RUN apt-get update \
+    && apt-get install -y nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y nginx-extras
+
+# Configure nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+RUN usermod -a -G www-data sail
+
+# Update PHP-FPM pool configuration to optimize worker settings
+RUN sed -i 's/^listen = .*/listen = \/run\/php\/php8.3-fpm.sock/' /etc/php/8.3/fpm/pool.d/www.conf
+RUN echo "listen.owner = www-data" >> /etc/php/8.3/fpm/pool.d/www.conf
+RUN echo "listen.group = www-data" >> /etc/php/8.3/fpm/pool.d/www.conf
+RUN echo "listen.mode = 0660" >> /etc/php/8.3/fpm/pool.d/www.conf
+
+# Update PHP-FPM worker settings
+RUN sed -i 's/^pm.max_children = .*/pm.max_children = 20/' /etc/php/8.3/fpm/pool.d/www.conf
+RUN sed -i 's/^pm.start_servers = .*/pm.start_servers = 5/' /etc/php/8.3/fpm/pool.d/www.conf
+RUN sed -i 's/^pm.min_spare_servers = .*/pm.min_spare_servers = 3/' /etc/php/8.3/fpm/pool.d/www.conf
+RUN sed -i 's/^pm.max_spare_servers = .*/pm.max_spare_servers = 10/' /etc/php/8.3/fpm/pool.d/www.conf
+
+# Update PHP-FPM error log location
+RUN sed -i 's|^error_log = .*|error_log = /var/www/html/storage/logs/php8.3-fpm_error.log|' /etc/php/8.3/fpm/php-fpm.conf
 
 # Create the start_laravel_app script
 COPY start_laravel_app.sh /usr/local/bin/start_laravel_app
@@ -124,7 +149,7 @@ COPY start_laravel_app.sh /usr/local/bin/start_laravel_app
 # Make the script executable
 RUN chmod +x /usr/local/bin/start_laravel_app
 
-
-EXPOSE 8000
+# Expose both nginx (80) and Laravel application (8000) ports
+EXPOSE 80 8000
 
 ENTRYPOINT ["start-container"]

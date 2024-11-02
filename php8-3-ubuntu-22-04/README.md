@@ -30,8 +30,8 @@ COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
 ### Building
 
 ```shell
-docker build -t ibukunoreofe/php8-3-ubuntu-22-04:node20postgre17 .
-docker push ibukunoreofe/php8-3-ubuntu-22-04:node20postgre17
+docker build -t ibukunoreofe/php8-3-ubuntu-22-04:nginxnode20postgre17 .
+docker push ibukunoreofe/php8-3-ubuntu-22-04:nginxnode20postgre17
 ```
 
 
