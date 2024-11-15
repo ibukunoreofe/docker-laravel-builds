@@ -41,10 +41,6 @@ fi
 echo "INFO: Setting permissions on /.composer to be readable and writable by all users."
 chmod -R ugo+rw /.composer
 
-# Start cron in the background
-echo "INFO: Starting cron in the background."
-cron &
-
 # Check if any arguments are provided
 if [ $# -gt 0 ]; then
     echo "INFO: Arguments provided: $@"
